@@ -26,8 +26,9 @@ for i in range(rows):
 	#features.append(gen_features_vector(given[:-1],3)) 
 	features.append(poly.fit_transform(given[:-1])[0]) # generates enhanced polynomial feature vector of degree 4
 	result.append(given[-1])
-	model = linear_model.LinearRegression(fit_intercept=False) # learning method: LINEAR MODEL
-	#model = svm.SVR(kernel='rbf', C=1e5) # # learning method: SVM
+
+model = linear_model.LinearRegression(fit_intercept=False) # learning method: LINEAR MODEL
+#model = svm.SVR(kernel='rbf', C=1e5) # # learning method: SVM
 
 model.fit(features,result)
 
@@ -39,4 +40,4 @@ for i in range(T):
 	#print model.coef_
 	#print np.dot(gen_features_vector(given,3),model.coef_) # multiple given test data with learning model coefficients 
 	#print model.predict(gen_features_vector(given,3)) # enhance given test data and predict value based on trained model
-	print model.predict(poly.fit_transform(given)[0])[0] # enhance given test data and predict value based on trained model
+	print round(model.predict(poly.fit_transform(given)[0]),2) # enhance given test data and predict value based on trained model
