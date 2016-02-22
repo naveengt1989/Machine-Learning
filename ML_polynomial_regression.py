@@ -1,6 +1,7 @@
 import numpy as np
 from sklearn import linear_model
 from sklearn import svm
+from sklearn.preprocessing import PolynomialFeatures
 # https://www.hackerrank.com/challenges/predicting-office-space-price
 #Description: Given training feature vectors, form enhanced feature vectors of polynomial degree k and use them to predict the value of given test features. Using 2 learning techniques: LINEAR MODEL, SVM
 
@@ -19,12 +20,14 @@ def gen_features_vector(v,k):
 (cols,rows) = map(int, raw_input().split(' '))
 features= []
 result =[]
+poly = PolynomialFeatures(degree=4) # Enhance feature vector with polynomial degree 4
 for i in range(rows):
 	given = map(float, raw_input().split(' '))
-	features.append(gen_features_vector(given[:-1],3)) 
+	#features.append(gen_features_vector(given[:-1],3)) 
+	features.append(poly.fit_transform(given[:-1])[0]) # generates enhanced polynomial feature vector of degree 4
 	result.append(given[-1])
-#model = linear_model.LinearRegression(fit_intercept=False) # learning method: LINEAR MODEL
-model = svm.SVR(kernel='rbf', C=1e5) # # learning method: SVM
+	model = linear_model.LinearRegression(fit_intercept=False) # learning method: LINEAR MODEL
+	#model = svm.SVR(kernel='rbf', C=1e5) # # learning method: SVM
 
 model.fit(features,result)
 
@@ -33,5 +36,7 @@ model.fit(features,result)
 T = int(raw_input())
 for i in range(T):
 	given = map(float, raw_input().split(' '))
-#	print np.dot(gen_features_vector(given,3),model.coef_) # multiple given test data with learning model coefficients 
-	print model.predict(gen_features_vector(given,3))[0] # enhance given test data and predict value based on trained model
+	#print model.coef_
+	#print np.dot(gen_features_vector(given,3),model.coef_) # multiple given test data with learning model coefficients 
+	#print model.predict(gen_features_vector(given,3)) # enhance given test data and predict value based on trained model
+	print model.predict(poly.fit_transform(given)[0])[0] # enhance given test data and predict value based on trained model
