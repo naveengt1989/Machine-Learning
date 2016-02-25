@@ -2,7 +2,9 @@
 # https://www.hackerrank.com/challenges/stockprediction
 
 # Heuristic criteria for evaluating potential stock picks
-class Eval:
+# Score: 55.2
+from collections import defaultdict
+class Eval(object):
 	fact = 0
 	item = 0
 
@@ -20,19 +22,29 @@ class Eval:
 def printTransactions(m, k, d, name, owned, prices):
 	avail = m
 	output = []
-	cand = []
+	cand1 = []
+	cand2 = []
+	dt = defaultdict()
 	for i in range(len(name)):
 		if owned[i]>0:		
 			if prices[i][4]> prices[i][3]:
 				output.append(name[i]+" SELL "+str(owned[i]));
 		if prices[i][2]>= prices[i][3] and prices[i][3]>= prices[i][4]:	
-			cand.append(Eval((prices[i][2]-prices[i][4])/prices[i][2],i))
-	for it in sorted(cand):
+			cand1.append(Eval((prices[i][2]-prices[i][4])/prices[i][2],i))
+		if (prices[i][3]-prices[i][4])/prices[i][4] > 0.04:
+			cand2.append(i)
+	for it in sorted(cand1):
 		buy = int(avail/prices[it.item][4])
 		avail -= buy*prices[it.item][4]
 		if buy >0:
 			output.append(name[it.item]+" BUY "+str(buy));
-	
+			dt[it.item] = 1
+	for i in cand2:
+		if dt.get(i) == None:	
+			buy = int(avail/prices[i][4])
+			avail -= buy*prices[i][4]
+			if buy >0:
+				output.append(name[it.item]+" BUY "+str(buy));
 	print len(output)
 	for i in output:
 		print i		
@@ -52,3 +64,4 @@ if __name__ == '__main__':
         prices.append([float(i) for i in temp[2:7]])
 
     printTransactions(m, k, d, names, owned, prices)
+
