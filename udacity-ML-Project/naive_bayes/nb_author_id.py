@@ -27,7 +27,7 @@ features_train, features_test, labels_train, labels_test = preprocess()
 # P(Label|X) = P(X|Label).P(Label)/P(X) 
 # P(Label) calculated from training data 
 # P(X|Label) is calculated from pdf function of (X) for label using mean,variance of X for label calculated from training data.
-# As it is naive, P(X|Label) = P(X1|Label)*P(X2|Label)....*P(Xn|Label) where n is number of features
+# As it is naive, P(X|Label) = P(X1|Label)*P(X2|Label)....*P(Xn|Label) where n is number of features in testing data and P(Xi | Label) is obtained from training data.
 # P(X) = P(X|Label(i))*P(Label(i)) + P(X|Label(j))*P(Label(j))
 # https://www.youtube.com/watch?v=r1in0YNetG8
 clf = GaussianNB()
