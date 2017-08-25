@@ -1,0 +1,202 @@
+import math
+import numpy as np
+from functools import partial
+
+def dot(v, w):
+    """v_1 * w_1 + ... + v_n * w_n"""
+    return sum(v_i * w_i for v_i, w_i in zip(v, w))
+
+def magnitude(v):
+    return math.sqrt(sum_of_squares(v))
+
+def sum_of_squares(v):
+    """v_1 * v_1 + ... + v_n * v_n"""
+    return dot(v, v)
+
+def direction(w):
+    mag = magnitude(w)
+    return [w_i / mag for w_i in w]
+
+def directional_variance_i(x_i, w):
+    """the variance of the row x_i in the direction determined by w"""
+    return dot(x_i, direction(w)) ** 2
+
+def directional_variance(X, w):
+    """the variance of the data in the direction determined w"""
+    return sum(directional_variance_i(x_i, w) for x_i in X)
+
+def vector_sum(vectors):
+    return reduce(vector_add, vectors)
+
+def vector_add(v, w):
+    """adds corresponding elements"""
+    return [v_i + w_i     for v_i, w_i in zip(v, w)]
+
+def directional_variance_gradient_i(x_i, w):
+    """the contribution of row x_i to the gradient of
+    the direction-w variance"""
+    projection_length = dot(x_i, direction(w))
+    return [2 * projection_length * x_ij for x_ij in x_i]
+
+def directional_variance_gradient(X, w):
+    return vector_sum(directional_variance_gradient_i(x_i,w) for x_i in X)
+
+def first_principal_component(X):
+    guess = [1 for _ in X[0]]
+    unscaled_maximizer = maximize_batch(
+    partial(directional_variance, X), # is now a function of w
+    partial(directional_variance_gradient, X), # is now a function of w
+    guess)
+    return direction(unscaled_maximizer)
+
+def negate(f):
+    """return a function that for any input x returns -f(x)"""
+    return lambda *args, **kwargs: -f(*args, **kwargs)
+                                      
+def negate_all(f):
+    """the same when f returns a list of numbers"""
+    return lambda *args, **kwargs: [-y for y in f(*args, **kwargs)]
+                                      
+def maximize_batch(target_fn, gradient_fn, theta_0, tolerance=0.000001):
+    return minimize_batch(negate(target_fn),negate_all(gradient_fn),theta_0,tolerance)
+
+def minimize_batch(target_fn, gradient_fn, theta_0, tolerance=0.000001):
+    """use gradient descent to find theta that minimizes target function"""
+    step_sizes = [100, 10, 1, 0.1, 0.01, 0.001, 0.0001, 0.00001]
+    theta = theta_0 # set theta to initial value
+    target_fn = safe(target_fn) # safe version of target_fn
+    value = target_fn(theta) # value we're minimizing
+    while True:
+        gradient = gradient_fn(theta)
+        next_thetas = [step(theta, gradient, -step_size) for step_size in step_sizes]   
+        # choose the one that minimizes the error function
+        next_theta = min(next_thetas, key=target_fn)
+        next_value = target_fn(next_theta)
+        # stop if we're "converging"
+        if abs(value - next_value) < tolerance:
+            return theta
+        else:
+            theta, value = next_theta, next_value   
+
+def step(v, direction, step_size):
+    """move step_size in the direction from v"""
+    return [v_i + step_size * direction_i     for v_i, direction_i in zip(v, direction)]
+
+def make_matrix(num_rows, num_cols, func):
+    """returns a num_rows x num_cols matrix
+    whose (i,j)th entry is entry_fn(i, j)"""
+    return np.array(
+        [[func(i, j) # given i, create a list
+            for j in range(num_cols)] # [entry_fn(i, 0), ... ]
+                for i in range(num_rows)] # create one list for each i    
+        );
+            
+def de_mean_matrix(A):
+    """returns the result of subtracting from every value in A the mean
+    value of its column. the resulting matrix has mean 0 in every column"""
+    nr, nc = shape(A)
+    column_means, _ = scale(A)
+    return make_matrix(nr, nc, lambda i, j: A[i][j] - column_means[j])
+
+def shape(A):
+    num_rows = len(A)
+    num_cols = len(A[0]) 
+    return num_rows, num_cols
+
+def scale(data_matrix):
+    """returns the means and standard deviations of each column"""
+    num_rows, num_cols = shape(data_matrix)
+    means = [mean(get_column(data_matrix,j)) for j in range(num_cols)]     
+    stdevs = [standard_deviation(get_column(data_matrix,j)) for j in range(num_cols)]     
+    return means, stdevs
+
+def safe(f):
+    """return a new function that's the same as f,
+    except that it outputs infinity whenever f produces an error"""
+    def safe_f(*args, **kwargs):
+        try:
+            return f(*args, **kwargs)
+        except:
+            return float('inf') # this means "infinity" in Python
+    return safe_f
+
+def mean(x):
+    return sum(x) / float(len(x))
+
+def get_row(A, i):
+    return A[i] # A[i] is already the ith row
+
+def get_column(A, j):
+    return [A_i[j] for A_i in A] # for each row A_i
+
+def standard_deviation(x):
+    return math.sqrt(variance(x))
+
+def variance(x):
+    """assumes x has at least two elements"""
+    n = len(x)
+    deviations = de_mean(x)
+    return sum_of_squares(deviations) / (n - 1)
+
+def de_mean(x):
+    """translate x by subtracting its mean (so the result has mean 0)"""
+    x_bar = mean(x)
+    return [x_i - x_bar for x_i in x]
+
+def first_principal_component(X):
+    guess = [1 for _ in X[0]]
+    unscaled_maximizer = maximize_batch(
+        partial(directional_variance, X), # is now a function of w
+        partial(directional_variance_gradient, X), # is now a function of w
+        guess)
+    return direction(unscaled_maximizer)
+
+def project(v, w):
+    """return the projection of v onto the direction w"""
+    projection_length = dot(v, w)
+    return scalar_multiply(projection_length, w)
+                           
+def vector_subtract(v, w):
+    """subtracts corresponding elements"""
+    return [v_i - w_i for v_i, w_i in zip(v, w)]
+
+def remove_projection_from_vector(v, w):
+    """projects v onto w and subtracts the result from v"""
+    return vector_subtract(v, project(v, w))
+
+def remove_projection(X, w):
+    """for each row of X
+    projects the row onto w, and subtracts the result from the row"""
+    return [remove_projection_from_vector(x_i, w) for x_i in X]
+
+def principal_component_analysis(X, num_components):
+    components = []
+    for _ in range(num_components):
+        component = first_principal_component(X)
+        components.append(component)
+        X = remove_projection(X, component)
+    return components
+
+def scalar_multiply(c, v):
+    """c is a number, v is a vector"""
+    return [c * v_i for v_i in v]
+
+def transform_vector(v, components):
+    return [dot(v, w) for w in components]
+
+def transform(X, components):
+    return [transform_vector(x_i, components) for x_i in X]
+
+#data = [[1,1],[2,2],[3,3],[4,4]]
+#data = [[1,2],[2,4,3],[3,6,2],[4,8,1]]
+data = np.array([
+        [1.0,1.0],
+        [2.0,2.0]
+    ])
+data = de_mean_matrix(data);
+print data
+
+components =  principal_component_analysis(data, 1)
+
+data = transform(data, components);
+print data
